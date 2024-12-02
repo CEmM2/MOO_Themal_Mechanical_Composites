@@ -59,7 +59,7 @@ your-repo/
 ├── model/
 │   ├── nn_constants_parsed.json    # Model weights and constants
 │   ├── model.py                    # Model implementation
-│   └── example_usage.py           # Example usage script (requires pymoo 
+│   └── example_usage.py           # Example usage script (requires [pymoo](https://pymoo.org/index.html) )
 ├── README.md
 └── requirements.txt
 ```
