@@ -8,9 +8,9 @@ This repository contains the implementation of the surrogate neural network mode
 
 The model accepts 10 geometric parameters that define the RVE architecture:
 
-1. `web` [1.0 - 3.0]: Honeycomb web thickness
-2. `iso` [0.25 - 0.75]: Fraction of lightweight phase within the web
-3. `theta1` - `theta8` [0° - 180°]: Reinforcement angles for each of the 8 cells
+1. `web` [1.0 - 3.0]: Honeycomb web thickness (inputs[0])
+2. `iso` [0.25 - 0.75]: Fraction of lightweight phase within the web (inputs[9])
+3. `theta1` - `theta8` [0° - 180°]: Reinforcement angles for each of the 8 cells (inputs[1:9])
 
 ## Output Properties
 
@@ -36,7 +36,6 @@ model = create_model()
 # Example input parameters
 inputs = [
     1.5,    # web thickness
-    0.5,    # iso fraction
     0.0,    # theta1
     45.0,   # theta2
     90.0,   # theta3
@@ -45,6 +44,7 @@ inputs = [
     135.0,  # theta6
     90.0,   # theta7
     45.0    # theta8
+    0.5,    # iso fraction
 ]
 
 # Get predictions
