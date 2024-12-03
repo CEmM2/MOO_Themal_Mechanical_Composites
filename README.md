@@ -59,7 +59,10 @@ your-repo/
 ├── model/
 │   ├── nn_constants_parsed.json    # Model weights and constants
 │   ├── model.py                    # Model implementation
-│   └── example_usage.py           # Example usage script (requires [pymoo](https://pymoo.org/index.html) )
+│   └── example_usage.py           # Example usage script for multiobjective optimization
+├── data/
+│   ├── RVE_Geom.pkl               # RVE parameters data used for FEM simulations
+│   ├── RVE_props.pkl              # Effective properties data from FEM simulations
 ├── README.md
 └── requirements.txt
 ```

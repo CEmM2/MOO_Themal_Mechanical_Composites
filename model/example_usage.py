@@ -1,7 +1,7 @@
 #%%
 import numpy as np
 import torch
-from App.torch_model import create_model,run_model
+from model import create_model,run_model
 from pymoo.core.problem import Problem
 from pymoo.algorithms.moo.nsga2 import NSGA2
 from pymoo.optimize import minimize
@@ -17,30 +17,35 @@ plt.rcParams.update({
     "font.family": "serif",
     "text.latex.preamble": r"\usepackage[utf8]{inputenc}\usepackage[T1]{fontenc}\usepackage{textgreek}"
 })
-from plots import create_custom_colorscale
-import scienceplots
+
 #%%
-'''
-   N_data[:,:,0] = data[:,:,0]/matrix_vals['rho']
-    N_data[:,:,1] = data[:,:,1]/matrix_vals['E']
-    N_data[:,:,2] = data[:,:,2]/matrix_vals['E']
-    N_data[:,:,3] = data[:,:,3]/matrix_vals['G']
-    N_data[:,:,4] = data[:,:,4]/matrix_vals['K']
-    N_data[:,:,5] = data[:,:,5]/matrix_vals['K']
-    return N_data
-'''
-class NNOptimizationProblem(Problem):
-    def __init__(self, model,run_model):
-        # Initialize the problem with 10 variables, 3 objectives
+class RVE_Opt(Problem):
+    PROPERTY_MAP = {
+        'density': 0,
+        'E11': 1,
+        'E22': 2,
+        'G12': 3,
+        'K1': 4,
+        'K2': 5
+    }
+    def __init__(self, model,run_model,n_obj,obj_names):
+        # Initialize the problem with 10 variables, n_obj objectives
+        if n_obj != len(obj_names):
+            raise ValueError("Number of objectives must match length of objective names")
+        if not all(name in self.PROPERTY_MAP for name in obj_names):
+            invalid_names = [name for name in obj_names if name not in self.PROPERTY_MAP]
+            raise ValueError(f"Invalid property names: {invalid_names}")
         super().__init__(
             n_var=10,          # number of input variables
-            n_obj=3,           # number of objectives
+            n_obj=n_obj,           # number of objectives
             n_constr=0,        # number of constraints
+            obj_names =obj_names,#names of the objectives e.g.['density','G12','K2']
             xl=np.array([1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.25]),    # lower bounds
             xu=np.array([3.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 0.75])  # upper bounds
         )
         self.model = model
         self.run_model=run_model
+        self.obj_names = obj_names
 
     def _evaluate(self, x, out, *args, **kwargs):
         # Convert numpy array to torch tensor (ensuring double precision)
@@ -48,26 +53,25 @@ class NNOptimizationProblem(Problem):
         
         # Evaluate the model (no need for torch.no_grad() since we're not training)
         y = self.run_model(self.model, x)
-        
-        
         # Extract objectives
-        # - minimize output[0]
-        # - maximize output[2] (minimize -output[2])
-        # - minimize output[5]
-        out["F"] = np.column_stack([
-            y[:, 0],     
-            -y[:, 3],
-            y[:,5],
-        ])
+        objectives = []
+        for prop_name in self.obj_names:
+            idx = self.PROPERTY_MAP[prop_name]
+            value = y[:, idx]
+            if prop_name in ['E11','E22','G12']:
+                value = -value # we aim to maximize these objectives so we add a minus sign
+            objectives.append(value)
+        out["F"] = np.column_stack(objectives)
+        
 
-def optimize_neural_network(model, run_model,n_generations=100, pop_size=100):
+def optimize_RVE(model, run_model,n_obj,obj_names,n_generations=100, pop_size=100):
     """
-    Optimize the custom neural network using NSGA-II
+    Optimize the RVE using NSGA-II
     
     Parameters:
     -----------
     model : NeuralNetwork
-        The custom neural network to optimize
+        The custom neural network to be used as surrogate model for optimizing properties
     n_generations : int
         Number of generations for NSGA-II
     pop_size : int
@@ -79,7 +83,7 @@ def optimize_neural_network(model, run_model,n_generations=100, pop_size=100):
         The optimization result containing the Pareto front
     """
     # Create the problem
-    problem = NNOptimizationProblem(model,run_model)
+    problem = RVE_Opt(model,run_model,n_obj,obj_names)
     
     # Configure the algorithm
     algorithm = NSGA2(
@@ -104,9 +108,10 @@ def optimize_neural_network(model, run_model,n_generations=100, pop_size=100):
 #%%
 matrix_vals = {'rho':1.42,'E':2.5,'G':2.5/(2*(1+0.34)),'K':0.12}
 model = create_model()
-    
+n_obj = 3
+obj_names = ['density','G12','K2']
 # Run optimization
-res = optimize_neural_network(model,run_model, n_generations=2000, pop_size=300)
+res = optimize_RVE(model,run_model,n_obj,obj_names, n_generations=2000, pop_size=300)
     
 
 
